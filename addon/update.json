@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "itempaneorganizer@example.com": {
+      "updates": [
+        {
+          "version": "1.3.0",
+          "update_link": "https://github.com/chen7447/item-pane-organizer-zotero/releases/download/v1.3.0/itempaneorganizer-1.3.0.xpi"
+        }
+      ]
+    }
+  }
+}
