@@ -207,39 +207,29 @@ var ItemPaneOrganizer = {
 
   _readRegisteredSections() {
     const manager = this._paneManager;
-    const found = [];
+    if (!manager || !manager.customSectionData) return [];
+    const out = [];
     const seen = new Set();
-    const visit = (value, depth, hint) => {
-      if (!value || depth > 5 || found.length > 500 || seen.has(value)) return;
-      if ((typeof value !== "object" && typeof value !== "function") || value === this) return;
-      seen.add(value);
-      try {
-        if (typeof value.paneID === "string") {
-          found.push({ paneID: value.paneID, pluginID: value.pluginID, label: value.header?.l10nID || value.sidenav?.l10nID });
-          return;
-        }
-        if (value instanceof Map) {
-          for (const [key, item] of value.entries()) visit(item, depth + 1, String(key));
-          return;
-        }
-        for (const key of Object.getOwnPropertyNames(value)) {
-          if (/sections|panes|registered|custom|itempane/i.test(key)) {
-            let child;
-            try { child = value[key]; } catch (e) { child = null; }
-            visit(child, depth + 1, key);
-          }
-        }
-      } catch (e) {}
-    };
-    visit(manager, 0, "ItemPaneManager");
-    return found;
+    for (const opt of manager.customSectionData.options || []) {
+      const paneID = opt.paneID;
+      if (!paneID || paneID === "itempaneorganizer") continue;
+      const id = (opt.pluginID ? CSS.escape(opt.pluginID + "-" + paneID) : paneID);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push({
+        paneID: id,
+        pluginID: opt.pluginID,
+        label: opt.header?.l10nID || opt.sidenav?.l10nID || paneID,
+      });
+    }
+    return out;
   },
 
   _renderBody(doc, body) {
     if (!doc || !body) return;
     body.replaceChildren();
     const style = doc.createElementNS("http://www.w3.org/1999/xhtml", "style");
-    style.textContent = ".ipo{font:message-box;padding:10px;min-width:0;max-width:100%}.ipo h2{margin:0 0 4px;font-size:15px}.ipo p{color:GrayText;margin:0 0 8px;line-height:1.35}.ipo-list{min-width:0;max-height:calc(100vh - 150px);overflow:auto}.ipo-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(72px,22%);align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid color-mix(in srgb,currentColor 15%,transparent);min-width:0;cursor:grab}.ipo-row.ipo-dragging{opacity:.45}.ipo-row.ipo-over{border-top:2px solid #6aa9d8}.ipo-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ipo-id{color:GrayText;font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ipo-kind{color:#6aa9d8;font-size:11px;white-space:nowrap}.ipo-hint{color:GrayText;font-size:11px;margin-top:8px}.ipo-empty{color:GrayText}.ipo-unrendered{opacity:.55;cursor:not-allowed}";
+    style.textContent = ".ipo{font:message-box;padding:10px;min-width:0;max-width:100%}.ipo h2{margin:0 0 4px;font-size:15px}.ipo p{color:GrayText;margin:0 0 8px;line-height:1.35}.ipo-list{min-width:0;max-height:calc(100vh - 150px);overflow:auto}.ipo-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(72px,22%);align-items:center;gap:7px;padding:6px 0;border-bottom:1px solid color-mix(in srgb,currentColor 15%,transparent);min-width:0;cursor:grab}.ipo-row.ipo-dragging{opacity:.45}.ipo-row.ipo-over{border-top:2px solid #6aa9d8}.ipo-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ipo-id{color:GrayText;font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ipo-kind{color:#6aa9d8;font-size:11px;white-space:nowrap}.ipo-hint{color:GrayText;font-size:11px;margin-top:8px}.ipo-empty{color:GrayText}.ipo-unrendered{opacity:.55;cursor:not-allowed}.ipo-btn{background:buttonface;border:1px solid buttonborder;border-radius:3px;padding:3px 10px;font:message-box;cursor:pointer;margin:0 0 8px}";
     body.append(style);
     const panel = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
     panel.className = "ipo";
@@ -249,12 +239,23 @@ var ItemPaneOrganizer = {
     const help = doc.createElementNS("http://www.w3.org/1999/xhtml", "p");
     help.textContent = "调整当前 Zotero 内容窗格中的原生面板和插件面板。插件未提供排序设置时，也可在这里移动。";
     panel.append(help);
+    const resetBtn = doc.createElementNS("http://www.w3.org/1999/xhtml", "button");
+    resetBtn.className = "ipo-btn";
+    resetBtn.textContent = "恢复默认顺序";
+    resetBtn.addEventListener("click", () => {
+      Zotero.Prefs.set("sidenav.order", "");
+      Zotero.Prefs.set(this._orderPref, "", true);
+      list.replaceChildren();
+      this._renderList(doc, list);
+    });
+    panel.append(resetBtn);
     const list = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
     list.className = "ipo-list";
     panel.append(list);
     const hint = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
     hint.className = "ipo-hint";
-    hint.textContent = "拖动行项目可调整顺序；灰色项目表示插件尚未在当前内容窗格渲染。";
+    const ver = typeof addonVersion !== "undefined" ? "版本 " + addonVersion : "";
+    hint.textContent = "拖动行项目可调整顺序；灰色项目表示插件尚未在当前内容窗格渲染。" + (ver ? "  " + ver : "");
     panel.append(hint);
     body.append(panel);
     this._renderList(doc, list);
