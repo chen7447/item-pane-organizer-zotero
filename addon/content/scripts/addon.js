@@ -91,6 +91,7 @@ var ItemPaneOrganizer = {
     if (root) {
       this._currentRoot = root;
       this._applySavedOrder(root);
+      this._ensureButtonTitles(root);
       this._log("sidenav found; entries=" + this._readEntries(root).length);
       return;
     }
@@ -174,14 +175,17 @@ var ItemPaneOrganizer = {
   },
 
   _pluginIDFromPaneID(id) {
+    const clean = id.replace(/\\([0-9a-f]{1,6}\s)?/g, (m, hex) => hex ? String.fromCodePoint(parseInt(hex.trim(), 16)) : "").replace(/\\(.)/g, "$1");
     const known = ["wordtranslator@example.com", "zoteropdftranslate@euclpts.com", "zotero-ai-butler@github.com", "zotero-llm@github.com.yilewang"];
-    const hit = known.find(pluginID => id === pluginID || id.startsWith(pluginID + "-"));
+    const hit = known.find(pluginID => clean === pluginID || clean.startsWith(pluginID + "-"));
     if (hit) return hit;
-    const at = id.indexOf("@");
-    return at >= 0 ? id.slice(0, id.indexOf("-", at) >= 0 ? id.indexOf("-", at) : id.length) : "";
+    const at = clean.indexOf("@");
+    return at >= 0 ? clean.slice(0, clean.indexOf("-", at) >= 0 ? clean.indexOf("-", at) : clean.length) : "";
   },
 
   _resolvePaneLabel(button, id) {
+    // data-pane 值经 CSS.escape 转义，先还原再匹配（如 itempaneorganizer\@example\.com-... → itempaneorganizer@example.com-...）
+    const clean = id.replace(/\\([0-9a-f]{1,6}\s)?/g, (m, hex) => hex ? String.fromCodePoint(parseInt(hex.trim(), 16)) : "").replace(/\\(.)/g, "$1");
     const nativeLabels = {
       info: "信息",
       abstract: "摘要",
@@ -194,12 +198,14 @@ var ItemPaneOrganizer = {
       tags: "标签",
       related: "关联条目",
     };
-    if (nativeLabels[id]) return nativeLabels[id];
+    if (nativeLabels[clean]) return nativeLabels[clean];
     const knownPluginLabels = {
       "wordtranslator@example.com-wordtranslator": "单词翻译",
       "zoteropdftranslate@euclpts.com-translate": "PDF 翻译",
+      "itempaneorganizer@example.com-itempaneorganizer": "内容窗格调整",
+      "zotero-ai-butler@github.com-ai-butler-chat-section": "AI Butler",
     };
-    if (knownPluginLabels[id]) return knownPluginLabels[id];
+    if (knownPluginLabels[clean]) return knownPluginLabels[clean];
     if (!button) return id;
     const text = button.getAttribute("aria-label") || button.getAttribute("tooltiptext") || button.getAttribute("title");
     return text || id;
@@ -354,6 +360,18 @@ var ItemPaneOrganizer = {
     if (this._dragState?.row) this._dragState.row.classList.remove("ipo-dragging");
     if (list) list.querySelectorAll(".ipo-over").forEach(row => row.classList.remove("ipo-over"));
     this._dragState = null;
+  },
+
+  _ensureButtonTitles(root) {
+    const container = this._getContainer(root);
+    if (!container) return;
+    for (const btn of container.querySelectorAll(".btn[data-pane]")) {
+      const id = String(btn.dataset.pane || "");
+      if (!id) continue;
+      if (!btn.getAttribute("title") && !btn.getAttribute("tooltiptext") && !btn.getAttribute("aria-label")) {
+        btn.setAttribute("title", this._resolvePaneLabel(btn, id));
+      }
+    }
   },
 
   _applySavedOrder(root) {
