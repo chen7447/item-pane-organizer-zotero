@@ -24,7 +24,7 @@ var ItemPaneOrganizer = {
     this._paneManager = Zotero.ItemPaneManager;
     this._registerItemPaneSection();
     this._discoverMainWindows();
-    this._log("initialized; target=Zotero 9 Item Pane DOM");
+    this._log("initialized; target=Zotero 10 Item Pane DOM");
   },
 
   shutdown() {
@@ -335,6 +335,8 @@ var ItemPaneOrganizer = {
       if (insertBefore) container.insertBefore(source.wrapper, target.wrapper);
       else container.insertBefore(source.wrapper, target.wrapper.nextSibling);
       const order = this._readEntries(root).filter(entry => entry.wrapper).map(entry => entry.id);
+      // 双写：官方 pref 让 Zotero 持久化并遵守（orderable 面板）；插件 pref 兜底（含非 orderable 面板）
+      Zotero.Prefs.set("sidenav.order", order.join(","));
       Zotero.Prefs.set(this._orderPref, order.join(","), true);
       list.replaceChildren();
       this._renderList(list.ownerDocument, list);
@@ -351,53 +353,6 @@ var ItemPaneOrganizer = {
     if (this._dragState?.row) this._dragState.row.classList.remove("ipo-dragging");
     if (list) list.querySelectorAll(".ipo-over").forEach(row => row.classList.remove("ipo-over"));
     this._dragState = null;
-  },
-
-  _makeButton(doc, text, label, handler) {
-    // 兼容旧方法名；新版排序使用行拖动。
-    const button = doc.createElementNS("http://www.w3.org/1999/xhtml", "button");
-    button.textContent = text;
-    button.title = label;
-    button.setAttribute("aria-label", label);
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      handler();
-    });
-    return button;
-  },
-
-  _move(paneID, direction, list) {
-    if (this._moveInProgress) return;
-    const root = this._getLiveRoot();
-    const container = this._getContainer(root);
-    if (!root || !container) return;
-    const entries = this._readEntries(root);
-    const current = entries.findIndex(entry => entry.id === paneID);
-    if (current < 0) return;
-    const target = direction === "up" ? current - 1 : current + 1;
-    if (target < 0 || target >= entries.length) return;
-    const currentWrapper = entries[current].wrapper;
-    const targetWrapper = entries[target].wrapper;
-    // 注册但尚未渲染的 pane 没有 wrapper，不能直接移动；
-    // 先移动当前 live DOM，避免重建或伪造第三方面板。
-    if (!currentWrapper || !targetWrapper || currentWrapper === targetWrapper) return;
-    this._moveInProgress = true;
-    try {
-      if (direction === "up") container.insertBefore(currentWrapper, targetWrapper);
-      else container.insertBefore(currentWrapper, targetWrapper.nextSibling);
-      const order = this._readEntries(root).map(entry => entry.id);
-      const previous = String(Zotero.Prefs.get(this._orderPref, true) || "");
-      const next = order.join(",");
-      if (previous !== next) Zotero.Prefs.set(this._orderPref, next, true);
-      list.replaceChildren();
-      this._renderList(list.ownerDocument, list);
-      this._log("moved " + paneID + " " + direction + "; order=" + next);
-    } catch (e) {
-      this._log("move failed: " + (e && (e.stack || e.message) || e));
-    } finally {
-      this._moveInProgress = false;
-    }
   },
 
   _applySavedOrder(root) {
