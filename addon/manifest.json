@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "内容窗格调整",
-  "version": "1.4.0",
-  "description": "查看并调整 Zotero 条目内容窗格中所有面板的顺序，包括未提供排序设置的插件面板。",
+  "version": "1.4.1",
+  "description": "查看并调�?Zotero 条目内容窗格中所有面板的顺序，包括未提供排序设置的插件面板�?,
   "author": "chen7447",
   "homepage_url": "https://github.com/chen7447/item-pane-organizer-zotero",
   "icons": {
