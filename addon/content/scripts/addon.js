@@ -269,6 +269,7 @@ var ItemPaneOrganizer = {
 
   _renderList(doc, list) {
     const root = this._getLiveRoot();
+    if (root) this._ensureButtonTitles(root);
     const entries = this._readEntries(root);
     if (!entries.length) {
       const empty = doc.createElementNS("http://www.w3.org/1999/xhtml", "div");
@@ -368,8 +369,8 @@ var ItemPaneOrganizer = {
     for (const btn of container.querySelectorAll(".btn[data-pane]")) {
       const id = String(btn.dataset.pane || "");
       if (!id) continue;
-      if (!btn.getAttribute("title") && !btn.getAttribute("tooltiptext") && !btn.getAttribute("aria-label")) {
-        btn.setAttribute("title", this._resolvePaneLabel(btn, id));
+      if (!btn.getAttribute("tooltiptext")) {
+        btn.setAttribute("tooltiptext", this._resolvePaneLabel(btn, id));
       }
     }
   },

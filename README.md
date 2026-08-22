@@ -22,14 +22,14 @@
 
 1. 下载正式版 XPI：
 
-   <https://github.com/chen7447/item-pane-organizer-zotero/releases/download/v1.4.1/itempaneorganizer-1.4.1.xpi>
+   <https://github.com/chen7447/item-pane-organizer-zotero/releases/download/v1.4.2/itempaneorganizer-1.4.2.xpi>
 
 2. 在 Zotero 中打开：
 
    `工具 → 插件`
 
 3. 点击右上角齿轮按钮，选择“从文件安装插件…”；
-4. 选择下载的 `itempaneorganizer-1.4.1.xpi`；
+4. 选择下载的 `itempaneorganizer-1.4.2.xpi`；
 5. 重启 Zotero（如果 Zotero 要求重启）；
 6. 打开一个有条目的内容窗格；
 7. 点击右侧的“内容窗格调整”面板；
@@ -88,16 +88,16 @@ node --check .\addon\bootstrap.js
 打包 XPI：
 
 ```powershell
-py -3 .\pack_xpi.py .\addon .\itempaneorganizer-1.4.1.xpi
+py -3 .\pack_xpi.py .\addon .\itempaneorganizer-1.4.2.xpi
 ```
 
 ## 发布信息
 
-当前正式版本：**1.4.1**
+当前正式版本：**1.4.2**
 
 Release 页面：
 
-<https://github.com/chen7447/item-pane-organizer-zotero/releases/tag/v1.4.1>
+<https://github.com/chen7447/item-pane-organizer-zotero/releases/tag/v1.4.2>
 
 ## 许可证
 
